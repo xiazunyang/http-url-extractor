@@ -32,7 +32,7 @@ android {
 }
 
 dependencies {
-    implementation project(":http.urlextractor")
+    implementation project(":library")
     implementation("com.squareup.okhttp3:okhttp:4.9.1")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation 'androidx.core:core-ktx:1.6.0'
