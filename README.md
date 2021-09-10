@@ -13,33 +13,32 @@
 
 1. 在根模块的`build.gradle`的适当位置添加以下代码：
     ```kotlin
-	allprojects {
-		repositories {
-			...
-			maven { url 'https://jitpack.io' }
-		}
-	}
+    allprojects {
+        repositories {
+            ...
+            maven { url 'https://jitpack.io' }
+        }
+    }
    ```
 
 2. 在业务模块的`build.gradle`文件中添加以下代码：
     ```kotlin
     dependencies {
-		implementation 'cn.numeron:http-url-extractor:latest_version'
-	}
+        implementation 'cn.numeron:http-url-extractor:latest_version'
+    }
     ```
 
 ### 使用
 
-	```
-	//使用`baseUrl`或`Retrofit`实例即可初始化，调用`extract`方法即可获取到对应方法的`url`
-	val httpUrl = HttpUrlExtractor("http://192.168.3.213:6680/")
-		/* 可通过此方法支持自定义注解的解析
-		.addAnnotationParser<YourAnnotation> { builder, annotation, parameter ->
-			TODO("执行你的解析操作，并设置为builder设置解析结果")
-		}
-		*/
-		.extract<TestApi> {
+    //使用`baseUrl`或`Retrofit`实例即可初始化，调用`extract`方法即可获取到对应方法的`url`
+    val httpUrl = HttpUrlExtractor("http://192.168.3.213:6680/")
+        /* 可通过此方法支持自定义注解的解析
+        .addAnnotationParser<YourAnnotation> { builder, annotation, parameter ->
+            TODO("执行你的解析操作，并设置为builder设置解析结果")
+        }
+        */
+        .extract<TestApi> {
             post(123, "money")
         }
-	Log.e(TAG, httpUrl)
-	```
+    Log.e(TAG, httpUrl)
+	
