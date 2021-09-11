@@ -29,16 +29,36 @@
     ```
 
 ### 使用
+    //Retrofit Api接口
+    interface TestApi {
 
+        @GET("/get")
+        suspend fun get(@Query("aaa") value: String): Response<Unit?>
+
+        @POST("post/{position}/{archive}")
+        suspend fun post(
+            @Path("position") position: Int,
+            @Path("archive") archive: String?
+        ): Response<Unit?>
+
+    }
     //使用`baseUrl`或`Retrofit`实例即可初始化，调用`extract`方法即可获取到对应方法的`url`
-    val httpUrl = HttpUrlExtractor("http://192.168.3.213:6680/")
+    val httpUrlExtractor = HttpUrlExtractor("http://192.168.3.213:6680/")
         /* 可通过此方法支持自定义注解的解析
         .addAnnotationParser<YourAnnotation> { builder, annotation, parameter ->
             TODO("执行你的解析操作，并设置为builder设置解析结果")
         }
         */
-        .extract<TestApi> {
-            post(123, "money")
-        }
-    Log.e(TAG, httpUrl)
+
+    val getUrl = httpUrlExtractor.extract<TestApi> {
+        //执行想要获取到HttpUrl的方法
+        get("bbb")
+    }
+    //getUrl = "http://192.168.3.213:6680/get?aaa=bbb"
+
+    val postUrl = httpUrlExtractor.extract<TestApi> {
+        post(123, "money")
+    }
+    //postUrl = "http://192.168.3.213:6680/post/123/money"
+
 	
