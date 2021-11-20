@@ -3,9 +3,10 @@ package cn.numeron.http
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.Retrofit
+import retrofit2.http.Url
 import retrofit2.http.*
 import java.lang.reflect.Proxy
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.CompletableFuture
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -17,33 +18,35 @@ class HttpUrlExtractor(private var baseUrl: String) {
 
     private var firstParserChain: ParserChain<Annotation>? = null
 
+    private val extractorScope = HttpUrlExtractorScope()
+
     init {
         addAnnotationParser<GET> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<POST> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<PUT> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<DELETE> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<HEAD> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<PATCH> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<OPTIONS> { builder, annotation, _ ->
-            builder.setPath(annotation.value)
+            builder.path = annotation.value
         }
         addAnnotationParser<HTTP> { builder, annotation, _ ->
-            builder.setPath(annotation.path)
+            builder.path = annotation.path
         }
         addAnnotationParser<Url> { builder, _, parameter ->
-            builder.setUrl(parameter as String)
+            builder.url = (parameter as String)
         }
         addAnnotationParser<Query> { builder, annotation, parameter ->
             val name = annotation.value
@@ -72,13 +75,13 @@ class HttpUrlExtractor(private var baseUrl: String) {
         return this
     }
 
-    inline fun <reified T : Annotation> addAnnotationParser(noinline parser: (builder: HttpUrl.Builder, annotation: T, parameter: Any?) -> Unit): HttpUrlExtractor {
+    inline fun <reified T : Annotation> addAnnotationParser(noinline parser: ExtractorScope.(builder: HttpUrl.Builder, annotation: T, parameter: Any?) -> Unit): HttpUrlExtractor {
         return addAnnotationParser(T::class.java, parser)
     }
 
     fun <T : Annotation> addAnnotationParser(
         annotationClass: Class<out T>,
-        parser: (builder: HttpUrl.Builder, annotation: T, parameter: Any?) -> Unit
+        parser: ExtractorScope.(builder: HttpUrl.Builder, annotation: T, parameter: Any?) -> Unit
     ): HttpUrlExtractor {
         val newParserChain = ParserChain(annotationClass, parser)
         if (firstParserChain == null) {
@@ -115,21 +118,17 @@ class HttpUrlExtractor(private var baseUrl: String) {
                 }
             }
         }
-        val atomicBoolean = AtomicBoolean()
+        val completableFuture = CompletableFuture<Unit>()
         invocation.startCoroutine(clazz.cast(proxy), object : Continuation<Unit> {
             override val context: CoroutineContext
                 get() = EmptyCoroutineContext
 
             override fun resumeWith(result: Result<Unit>) {
-                atomicBoolean.set(true)
-                result.onFailure {
-                    throw it
-                }
+                result.onSuccess(completableFuture::complete)
+                    .onFailure(completableFuture::completeExceptionally)
             }
         })
-        while (!atomicBoolean.get()) {
-            Thread.yield()
-        }
+        completableFuture.join()
         return builder.build().toString()
     }
 
@@ -140,31 +139,12 @@ class HttpUrlExtractor(private var baseUrl: String) {
         while (chain != null && !chain.accept(annotation)) {
             chain = chain.next
         }
-        chain?.parser?.invoke(builder, annotation, parameter)
-    }
-
-    private val HttpUrl.Builder.path: String
-        get() {
-            return javaClass.getDeclaredField("encodedPathSegments").run {
-                isAccessible = true
-                val segmentPath = get(this@path) as List<*>
-                segmentPath.joinToString("/", prefix = "/")
-            }
-        }
-
-    private fun HttpUrl.Builder.setPath(annotationValue: String) {
-        var path = annotationValue
-        if (path.isNotEmpty()) {
-            if (!path.startsWith('/')) {
-                path = "/$path"
-            }
-            encodedPath(path)
-        }
+        chain?.parser?.invoke(extractorScope, builder, annotation, parameter)
     }
 
     private class ParserChain<out T : Annotation>(
         val annotationClass: Class<out T>,
-        val parser: (builder: HttpUrl.Builder, annotation: @UnsafeVariance T, parameter: Any?) -> Unit
+        val parser: ExtractorScope.(builder: HttpUrl.Builder, annotation: @UnsafeVariance T, parameter: Any?) -> Unit
     ) {
 
         var next: ParserChain<Annotation>? = null

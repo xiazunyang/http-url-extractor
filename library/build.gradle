@@ -1,13 +1,10 @@
 plugins {
-    id 'java-library'
     id 'kotlin'
-    id 'com.vanniktech.maven.publish'
+    id 'com.github.dcendents.android-maven'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
 
 dependencies {
     compileOnly("com.squareup.okhttp3:okhttp:4.9.1")

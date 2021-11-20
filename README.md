@@ -5,7 +5,7 @@
 
 ### 原理
 
-通过动态代理，模拟`Retrofit`创建`API`实例，解析接口上的注解，由用户自行决定调用的方法，并提供对应的参数，最终处理成正确的`HttpUrl`。
+通过动态代理，模拟`Retrofit`创建`API`实例，解析接口、方法以及参数相关的注解，由用户自行决定调用的方法，并提供对应的参数，最终处理成正确的`HttpUrl`。
 
 ### 安装
 
@@ -46,6 +46,7 @@
     val httpUrlExtractor = HttpUrlExtractor("http://192.168.3.213:6680/")
         /* 可通过此方法支持自定义注解的解析
         .addAnnotationParser<YourAnnotation> { builder, annotation, parameter ->
+            //此Lambda内有ExtractorScope的作用域，可以访问或修改builder的url和path等属性。
             TODO("执行你的解析操作，并设置为builder设置解析结果")
         }
         */
