@@ -1,6 +1,6 @@
 plugins {
     id 'kotlin'
-    id 'com.github.dcendents.android-maven'
+    id 'maven-publish'
 }
 
 sourceCompatibility = "1.8"
@@ -9,4 +9,17 @@ targetCompatibility = "1.8"
 dependencies {
     compileOnly("com.squareup.okhttp3:okhttp:4.9.1")
     compileOnly("com.squareup.retrofit2:retrofit:2.9.0")
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'cn.numeron'
+            artifactId = 'http-url-extractor'
+            version = '1.0.3'
+            afterEvaluate {
+                from components.java
+            }
+        }
+    }
 }

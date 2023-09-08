@@ -2,6 +2,8 @@ package cn.numeron.http
 
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.internal.notifyAll
+import okhttp3.internal.wait
 import retrofit2.Retrofit
 import retrofit2.http.Url
 import retrofit2.http.*
@@ -118,17 +120,28 @@ class HttpUrlExtractor(private var baseUrl: String) {
                 }
             }
         }
-        val completableFuture = CompletableFuture<Unit>()
-        invocation.startCoroutine(clazz.cast(proxy), object : Continuation<Unit> {
+        val completion = object : Continuation<Unit> {
+            private var result: Result<Unit>? = null
             override val context: CoroutineContext
                 get() = EmptyCoroutineContext
 
             override fun resumeWith(result: Result<Unit>) {
-                result.onSuccess(completableFuture::complete)
-                    .onFailure(completableFuture::completeExceptionally)
+                synchronized(this) {
+                    this.result = result
+                    notifyAll()
+                }
             }
-        })
-        completableFuture.join()
+
+            fun await() {
+                synchronized(this) {
+                    while (result == null) {
+                        wait()
+                    }
+                }
+            }
+        }
+        invocation.startCoroutine(clazz.cast(proxy), completion)
+        completion.await()
         return builder.build().toString()
     }
 
